@@ -1,5 +1,5 @@
 const chatBox = document.getElementById("chat-box");
-const messageInput = document.getElementById("message");
+const messageInput = document.getElementById("message-input");
 
 async function sendMessage() {
   const message = messageInput.value.trim();
@@ -7,15 +7,13 @@ async function sendMessage() {
 
   appendMessage("You", message);
   messageInput.value = "";
-
   appendMessage("Aarabot", "Thinking...");
 
-  // This is a simple demo using a free public API for now (no key needed)
   try {
     const reply = await getBotReply(message);
     updateLastBotMessage(reply);
   } catch (err) {
-    updateLastBotMessage("Oops! Something went wrong. Try again later.");
+    updateLastBotMessage("Oops! Something went wrong.");
   }
 }
 
@@ -33,19 +31,23 @@ function updateLastBotMessage(newText) {
   lastMsg.textContent = `Aarabot: ${newText}`;
 }
 
-async function getBotReply(userMessage) {
-  // Simple local replies (works offline)
-  const localReplies = {
-    hi: "Hello! I'm Aarabot, your friendly AI 🤖",
-    hello: "Hi there! How can I help you today?",
-    bye: "Goodbye! Have a nice day 🌸",
-  };
+// 💡 This connects to GPT
+async function getBotReply(message) {
+  const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer mistral-api-key" // Replace this line later with real key
+    },
+    body: JSON.stringify({
+      model: "mistral-tiny",
+      messages: [
+        { role: "system", content: "You are Aarabot, a friendly AI like ChatGPT." },
+        { role: "user", content: message }
+      ]
+    })
+  });
 
-  const lower = userMessage.toLowerCase();
-  if (localReplies[lower]) return localReplies[lower];
-
-  // Basic free API for fun replies (no OpenAI key needed)
-  const res = await fetch(`https://api.monkedev.com/fun/chat?msg=${encodeURIComponent(userMessage)}`);
-  const data = await res.json();
-  return data.response;
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "Sorry, I didn’t get that.";
 }
